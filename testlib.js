@@ -398,6 +398,12 @@
             });
         };
 
+        /**
+         * Executes the given function in the context of the web page and
+         * returns its result
+         *
+         * @param {Function} function to execute in the context of the page
+         */
         this.run = function(func) {
             var promise = new Promise();
             queue_sync('run', function() {
