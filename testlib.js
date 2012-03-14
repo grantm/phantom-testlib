@@ -89,6 +89,11 @@
         function diag(message, indent) {
             indent = indent || 0;
             indent = Array(1+indent).join("\t");
+
+            if ( message instanceof Promise ) {
+                message = message.value;
+            }
+
             message.split(/\r?\n/).forEach(function(line) {
                 console.log('# ' + indent + line);
             });
@@ -391,6 +396,14 @@
                 expected = page_eval(expected);
                 ok(got == expected, description, got, expected);
             });
+        };
+
+        this.run = function(func) {
+            var promise = new Promise();
+            queue_sync('run', function() {
+                promise.value = page_eval(func);
+            });
+            return promise;
         };
 
         /**
