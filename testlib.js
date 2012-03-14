@@ -402,12 +402,19 @@
          * Executes the given function in the context of the web page and
          * returns its result
          *
+         * This lets you do things like:
+         *
+         * <pre>t.is(t.eval(function() { return window.location.href; }), 'http://.....', 'URL is correct');</pre>
+         *
          * Any additional arguments you pass (provided they're JSON
          * serializable) will be passed to your function for you.
          *
          * <pre>t.run(function() { return document.title })</pre>
          * or
          * <pre>t.run(function(el) { return document[el] }, 'title')</pre>
+         *
+         * Note: the function is sandboxed to the page, you cannot return
+         * complex objects (e.g. a jquery object)
          *
          * @param {Function} function to execute in the context of the page
          */
