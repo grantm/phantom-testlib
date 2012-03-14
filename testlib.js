@@ -402,12 +402,29 @@
          * Executes the given function in the context of the web page and
          * returns its result
          *
+         * Any additional arguments you pass (provided they're JSON
+         * serializable) will be passed to your function for you.
+         *
+         * <pre>t.run(function() { return document.title })</pre>
+         * or
+         * <pre>t.run(function(el) { return document[el] }, 'title')</pre>
+         *
          * @param {Function} function to execute in the context of the page
          */
         this.run = function(func) {
             var promise = new Promise();
+            var args = Array.prototype.slice.call(arguments);
+            func = args.shift();
             queue_sync('run', function() {
-                promise.value = page_eval(func);
+                page_set_argument({
+                    args: args,
+                    func: func.toString()
+                });
+                promise.value = page_eval(function() {
+                    var arg = __testlib_argument;
+                    var func = eval('func = ' + arg.func);
+                    return func.apply(window, arg.args);
+                });
             });
             return promise;
         };
