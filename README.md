@@ -23,8 +23,7 @@ Installation
     sudo apt-get update
     sudo apt-get install phantomjs</pre>
 
-3. Or build PhantomJS from source 
-
+    Or build PhantomJS from source 
 
     <pre>sudo apt-get install libqt4-dev qt4-qmake
     git clone git://github.com/ariya/phantomjs.git && cd phantomjs
@@ -33,9 +32,10 @@ Installation
     sudo ln -s  $(pwd)/bin/phantomjs /usr/local/bin/phantomjs</pre>
     
 3. Test:
-
     
     <pre>phantomjs github-test.js</pre>
+
+    Note: if you don't have an X server, install xvfb, and prepend the above command with <code>xvfb-run</code>
 
 Notes
 -----
