@@ -64,7 +64,8 @@
             height: 768,
             timeout: 10000,
             diag_console: false,
-            diag_screenshots: false
+            diag_screenshots: false,
+            screenshot_path: './'
         };
         var tests = {
             total: 0,
@@ -361,7 +362,7 @@
                 if ( opt.diag_screenshots ) {
                     diag('[screenshot] ' + filename);
                 }
-                page.render(filename);
+                page.render(opt.screenshot_path + filename);
             });
         };
 
