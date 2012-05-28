@@ -307,7 +307,7 @@
                     /** @ignore */
                     page.onConsoleMessage = function(message) {
                         if ( opt.diag_console ) {
-                            diag('console> ' + message, 1);
+                            diag('[console] ' + message, 1);
                         }
                     };
                 }
@@ -359,7 +359,7 @@
         this.screenshot = function(filename) {
             queue_sync('screenshot', function() {
                 if ( opt.diag_screenshots ) {
-                    diag('screenshot: ' + filename);
+                    diag('[screenshot] ' + filename);
                 }
                 page.render(filename);
             });
