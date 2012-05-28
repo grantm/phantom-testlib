@@ -12,19 +12,30 @@
      */
     var Promise = function() {
         var resolved = false, value;
+
         this.__defineGetter__('resolved', function() {
             return resolved;
         });
+
         this.__defineGetter__('value', function() {
             if ( ! resolved ) {
                 throw "Unresolved promise queried";
             }
             return value;
         });
+
         this.__defineSetter__('value', function(val) {
             resolved = true;
             value = val;
         });
+
+        this.recalculate = function() {
+            if ( ! ( this.calculate && typeof(this.calculate) === 'function' ) ) {
+                throw "Can't recalculate promise (missing calculate function)";
+            }
+            this.value = this.calculate();
+            return this.value;
+        };
     };
 
     /**
@@ -51,7 +62,9 @@
             base_url: null,
             width: 1024,
             height: 768,
-            timeout: 10000
+            timeout: 10000,
+            diag_console: false,
+            diag_screenshots: false
         };
         var tests = {
             total: 0,
@@ -168,6 +181,16 @@
         }
 
         /** @private */
+        function page_reeval(arg) {
+            if ( typeof(arg) === 'function' ) {
+                return page.evaluate(arg);
+            }
+            if ( arg instanceof Promise ) {
+                return arg.recalculate();
+            }
+            throw "Can't page_reeval type: " + typeof(arg);
+        }
+
         function page_eval(arg) {
             if ( typeof(arg) === 'function' ) {
                 return page.evaluate(arg);
@@ -175,7 +198,7 @@
             if ( arg instanceof Promise ) {
                 return arg.value;
             }
-            if ( typeof(arg) === 'string' ) {
+            if ( typeof(arg) === 'string' || typeof(arg) === 'number' || typeof(arg) === 'boolean' ) {
                 return arg;
             }
             throw "Can't page_eval type: " + typeof(arg);
@@ -194,20 +217,23 @@
             var selector = args.shift();
 
             queue_sync('invoke_jquery', function() {
-                page_set_argument({
-                    selector: selector,
-                    method: method,
-                    args: args
-                });
-                promise.value = page_eval(function() {
-                    var arg = __testlib_argument;
-                    var obj = $(arg.selector);
-                    var ret = obj[arg.method].apply(obj, arg.args);
-                    if ( ret instanceof $ ) {
-                        return null;
-                    }
-                    return ret;
-                });
+                promise.calculate = function() {
+                    page_set_argument({
+                        selector: selector,
+                        method: method,
+                        args: args
+                    });
+                    return page_eval(function() {
+                        var arg = __testlib_argument;
+                        var obj = $(arg.selector);
+                        var ret = obj[arg.method].apply(obj, arg.args);
+                        if ( ret instanceof $ ) {
+                            return null;
+                        }
+                        return ret;
+                    });
+                };
+                promise.recalculate();
             });
 
             return promise;
@@ -241,6 +267,10 @@
          *   <dd>The width of the browser window</dd>
          *   <dt><tt>height</tt></dt>
          *   <dd>The height of the browser window</dd>
+         *   <dt><tt>diag_console</tt></dt>
+         *   <dd>Log browser console.log output as diag messages</dd>
+         *   <dt><tt>diag_screenshots</tt></dt>
+         *   <dd>Log screenshots as diag messages</dd>
          * </dl>
          *
          * <pre>t.set('timeout', 30000);
@@ -276,7 +306,9 @@
                     page.viewportSize = { width: opt.width, height: opt.height };
                     /** @ignore */
                     page.onConsoleMessage = function(message) {
-                        diag('console> ' + message, 1);
+                        if ( opt.diag_console ) {
+                            diag('console> ' + message, 1);
+                        }
                     };
                 }
 
@@ -309,8 +341,8 @@
          */
         this.sleep = function(ms) {
             queue_async('sleep', function(done) {
-                console.log('sleeping for ' + ms + 'ms');
-                setTimeout(function() { console.log('finished sleeping'); done(); }, ms);
+                diag('sleeping for ' + ms + 'ms');
+                setTimeout(done, ms);
             });
         };
 
@@ -326,6 +358,9 @@
          */
         this.screenshot = function(filename) {
             queue_sync('screenshot', function() {
+                if ( opt.diag_screenshots ) {
+                    diag('screenshot: ' + filename);
+                }
                 page.render(filename);
             });
         };
@@ -398,6 +433,34 @@
             });
         };
 
+        this.wait = function(calculated, condition, description) {
+            queue_async('wait', function(done) {
+                // TODO - this should timeout?
+                var timer;
+                var firedDone = false;
+                var check = function() {
+                    var c = page_reeval(calculated);
+                    if ( typeof(condition) === 'undefined' && c || c == condition ) {
+                        if ( timer ) {
+                            clearTimeout(timer);
+                        }
+                        if ( !firedDone ) {
+                            if ( description ) {
+                                ok(true, description);
+                            }
+                            done();
+                        }
+                        firedDone = true;
+                        return true;
+                    }
+                    return false;
+                };
+                if ( ! check() ) {
+                    timer = setInterval(check, 100);
+                }
+            });
+        };
+
         /**
          * Executes the given function in the context of the web page and
          * returns its result
@@ -449,6 +512,35 @@
         };
 
         /**
+         * Returns the response of a $(selector).is(filter) jQuery method call
+         *
+         * Example usage:
+         *
+         * <pre>t.is('#my-element', ':visible'); // Is #my-element visible?</pre>
+         *
+         * @param {String} selector The element(s) to get the value of.
+         * @param {String} filter The selector to apply to the .is() method of jQuery
+         */
+        this.jquery_is = function() {
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift('is');
+            return invoke_jquery.apply(this, args);
+        };
+
+        /**
+         * Returns a boolean on if the selector contains visible elements or not
+         *
+         * Example usage:
+         *
+         * <pre>t.is(t.visible('#element'), true, 'Element is visible');</pre>
+         *
+         * @param {String} selector The element(s) to get the value of.
+         */
+        this.visible = function(selector) {
+            return this.jquery_is(selector, ':visible');
+        };
+
+        /**
          * Returns - or sets - the <tt>value</tt> of the element(s) matching
          * the given selector.
          *
@@ -462,6 +554,55 @@
         this.val = function() {
             var args = Array.prototype.slice.call(arguments);
             args.unshift('val');
+            return invoke_jquery.apply(this, args);
+        };
+
+        /**
+         * Returns - or sets - the <tt>css</tt> of the element(s) matching
+         * the given selector.
+         *
+         * <pre>t.css('#myform input[name="firstname"]', 'background-image', 'foobar.png');  // set first name
+         * t.is(t.css('#myform input[name="firstname"]', 'background-image'), 'foobar.png', 'Correct background image');</pre>
+         *
+         * @param {String} selector The element(s) to get the css of.
+         */
+        this.css = function() {
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift('css');
+            return invoke_jquery.apply(this, args);
+        };
+
+        /**
+         * Returns - or sets - the <tt>attr</tt> of the element(s) matching
+         * the given selector.
+         *
+         * <pre>t.attr('#myform', 'method', 'POST'); // Update form method
+         * t.is(t.attr('#myform', 'method'), 'POST', 'Correct form method');</pre>
+         *
+         * @param {String} selector The element(s) to get the value of.
+         * @param {String} Attribute to set/get
+         * @param {String} (optional) attribute value
+         */
+        this.attr = function() {
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift('attr');
+            return invoke_jquery.apply(this, args);
+        };
+
+
+        /**
+         * Invoke jQuery's trigger method
+         *
+         * This is useful for faking events on objects
+         *
+         * <pre>t.trigger('#username', 'keydown');</pre>
+         *
+         * @param {String} selector The element(s) to get the value of.
+         * @param {String} event name
+         */
+        this.trigger = function() {
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift('trigger');
             return invoke_jquery.apply(this, args);
         };
 
