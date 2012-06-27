@@ -305,6 +305,16 @@
         };
 
         /**
+         * Like 'diag' except the message will only be output if the verbose
+         * option is true.
+         *
+         * @param {String} message The message to dump.
+         */
+        this.vdiag = function(message) {
+            queue_sync('vdiag', function() { vdiag(message); });
+        };
+
+        /**
          * Navigates to the given path. The path is considered relative to the
          * <tt>base_url</tt> you set when creating the test object.
          *
