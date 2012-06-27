@@ -65,7 +65,8 @@
             timeout: 10000,
             diag_console: false,
             diag_screenshots: false,
-            screenshot_path: './'
+            screenshot_path: './',
+            verbose: false
         };
         var tests = {
             total: 0,
@@ -111,6 +112,13 @@
             message.split(/\r?\n/).forEach(function(line) {
                 console.log('# ' + indent + line);
             });
+        }
+
+        /** @private */
+        function vdiag(message, indent) {
+            if ( opt.verbose ) {
+                diag(message, indent);
+            }
         }
 
         /** @private */
@@ -243,7 +251,7 @@
         /** @private */
         function page_open_callback_factory(done) {
             return function() {
-                diag('loaded: ' + page_eval(function() { return location.href; }));
+                vdiag('loaded: ' + page_eval(function() { return location.href; }));
                 page.injectJs('jquery.min.js');   // Assumes this is available via libraryPath
                 page_eval(function() {
                     window.$TJ = jQuery.noConflict();
