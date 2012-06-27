@@ -226,9 +226,9 @@
                     });
                     return page_eval(function() {
                         var arg = __testlib_argument;
-                        var obj = $(arg.selector);
+                        var obj = $TJ(arg.selector);
                         var ret = obj[arg.method].apply(obj, arg.args);
-                        if ( ret instanceof $ ) {
+                        if ( ret instanceof $TJ ) {
                             return null;
                         }
                         return ret;
@@ -244,9 +244,11 @@
         function page_open_callback_factory(done) {
             return function() {
                 diag('loaded: ' + page_eval(function() { return location.href; }));
+                page.injectJs('jquery.min.js');   // Assumes this is available via libraryPath
                 page_eval(function() {
-                    $(window).click(function(e) {
-                        var link = $(e.target).filter('a');
+                    window.$TJ = jQuery.noConflict();
+                    $TJ(window).click(function(e) {
+                        var link = $TJ(e.target).filter('a');
                         if ( link.length ) {
                             location = link.prop('href');
                         }
