@@ -390,7 +390,7 @@
                     diag('No tests run!');
                 }
 
-                page.release();
+                page && page.release();
                 phantom.exit(exit_code);
             });
         };
