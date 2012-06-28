@@ -251,19 +251,31 @@
         /** @private */
         function trigger_dom_event(selector, event_type, extra_data) {
             page_set_argument({'selector': selector, 'event_type': event_type, 'extra_data': extra_data});
-            page_eval(function() {
+            var matches = page_eval(function() {
                 var selector   = __testlib_argument.selector;
                 var event_type = __testlib_argument.event_type;
                 var extra_data = __testlib_argument.extra_data;
                 $TJ('body').append(
                     $TJ('<p />').text('Matches for trigger: ' + $TJ(selector).length)
                 );
-                $TJ(selector).each(function(i, el) {
+                return $TJ(selector).each(function(i, el) {
                     var evt = document.createEvent("HTMLEvents");
                     evt.initEvent(event_type, true, true); // event type,bubbling,cancelable
                     el.dispatchEvent(evt);
-                });
+                }).length;
             });
+            if ( matches === 0 ) {
+                diag(
+                    'could not find any elements matching "' + selector +
+                    '" to deliver "' + event_type + '" event'
+                );
+            }
+            else {
+                vdiag(
+                    'delivered "' + event_type + '" event to ' +
+                    matches + ' element' + (matches === 1 ? '' : 's')
+                );
+            }
         }
 
         /** @private */
