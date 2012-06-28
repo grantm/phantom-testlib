@@ -55,7 +55,7 @@
      * @param {String} base_url The base URL that all {@link #open} calls will be relative to.
      * @class
      */
-    var Test = function(base_url) {
+    var Test = function(base_url, user_opt) {
         var running = false;
         var page;
         var opt = {
@@ -77,6 +77,12 @@
 
         // initialise
         opt.base_url = base_url;
+
+        if ( user_opt ) {
+            for ( p in user_opt ) {
+                opt[p] = user_opt[p];
+            }
+        }
 
         /** @private */
         function proxy(func) {
