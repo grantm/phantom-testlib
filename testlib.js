@@ -249,6 +249,24 @@
         }
 
         /** @private */
+        function trigger_dom_event(selector, event_type, extra_data) {
+            page_set_argument({'selector': selector, 'event_type': event_type, 'extra_data': extra_data});
+            page_eval(function() {
+                var selector   = __testlib_argument.selector;
+                var event_type = __testlib_argument.event_type;
+                var extra_data = __testlib_argument.extra_data;
+                $TJ('body').append(
+                    $TJ('<p />').text('Matches for trigger: ' + $TJ(selector).length)
+                );
+                $TJ(selector).each(function(i, el) {
+                    var evt = document.createEvent("HTMLEvents");
+                    evt.initEvent(event_type, true, true); // event type,bubbling,cancelable
+                    el.dispatchEvent(evt);
+                });
+            });
+        }
+
+        /** @private */
         function page_open_callback_factory(done) {
             return function() {
                 vdiag('loaded: ' + page_eval(function() { return location.href; }));
@@ -659,32 +677,29 @@
         };
 
         /**
-         * Synthesises a DOM click event targetted at the element matching the
-         * given selector.
+         * Synthesises a DOM event (eg: 'click') targetted at the element
+         * matching the given selector.
          *
          * @param {String} selector The element to click on.
+         * @param {String} event_type The type of event to generate
          */
-        this.dom_click = function(selector) {
-            queue_async('dom_click', function(done) {
-                page_set_argument(selector);
-                var matches = page_eval(function() {
-                    var selector = __testlib_argument;
-                    var elements = $TJ(selector);
-                    if ( elements.length !== 1 ) {
-                        return elements.length;
-                    }
-                    evt = document.createEvent("HTMLEvents");
-                    evt.initEvent('click', true, true); // event type,bubbling,cancelable
-                    elements[0].dispatchEvent(evt);
-                    return 1;
-                });
-                if ( matches !== 1 ) {
-                    diag('selector: "' + selector + '" matched ' + matches + ' elements - expected 1');
-                }
-                else {
-                    vdiag('clicked element with selector: "' + selector + '"');
-                }
-                done();
+        this.trigger_dom_event = function(selector, event_type) {
+            queue_sync('trigger_dom_event', function() {
+                trigger_dom_event(selector, event_type);
+            });
+        };
+
+        /**
+         * Synthesises a DOM event (eg: 'click') targetted at the element
+         * matching the given selector then waits for a page load to occur.
+         *
+         * @param {String} selector The element to click on.
+         * @param {String} event_type The type of event to generate
+         */
+        this.trigger_dom_event_and_wait = function(selector, event_type) {
+            queue_async('trigger_dom_event', function(done) {
+                trigger_dom_event(selector, event_type);
+                page.onLoadFinished = page_open_callback_factory(done);
             });
         };
     };
