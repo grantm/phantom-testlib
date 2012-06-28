@@ -88,11 +88,11 @@
         function ok(success, description, got, expected) {
             var n = ++tests.total;
             if ( success ) {
-                console.log('ok ' + n + ' ' + description);
+                console.log('ok ' + n + ' - ' + description);
                 tests.ok++;
             }
             else {
-                console.log('not ok ' + n + ' ' + description);
+                console.log('not ok ' + n + ' - ' + description);
                 if ( arguments.length == 4 ) {
                     diag("Got: " + got + "\nExpected: " + expected, 1);
                 }
@@ -417,7 +417,10 @@
                 if ( tests.total ) {
                     console.log('1..' + tests.total);
                     if ( tests.failed ) {
-                        diag('Looks like you failed ' + tests.failed + ' test(s) of ' + tests.total + '.');
+                        diag(
+                            'Looks like you failed ' + tests.failed + ' test' +
+                            (tests.failed === 1 ? '' : 's') + ' of ' + tests.total + '.'
+                        );
                         exit_code = 1;
                     }
                 }
