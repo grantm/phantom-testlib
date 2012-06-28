@@ -282,7 +282,10 @@
         function page_open_callback_factory(done) {
             return function() {
                 vdiag('loaded: ' + page_eval(function() { return location.href; }));
-                page.injectJs('jquery.min.js');   // Assumes this is available via libraryPath
+                if ( !page.injectJs('jquery.min.js') ) {  // Assumes this is available via libraryPath
+                    console.log('Failed to load jquery.min.js from phatomjs libraryPath');
+                    phantom.exit(1);
+                }
                 page_eval(function() {
                     window.$TJ = jQuery.noConflict();
                     $TJ(window).click(function(e) {
