@@ -657,6 +657,36 @@
                 page.onLoadFinished = page_open_callback_factory(done);
             });
         };
+
+        /**
+         * Synthesises a DOM click event targetted at the element matching the
+         * given selector.
+         *
+         * @param {String} selector The element to click on.
+         */
+        this.dom_click = function(selector) {
+            queue_async('dom_click', function(done) {
+                page_set_argument(selector);
+                var matches = page_eval(function() {
+                    var selector = __testlib_argument;
+                    var elements = $TJ(selector);
+                    if ( elements.length !== 1 ) {
+                        return elements.length;
+                    }
+                    evt = document.createEvent("HTMLEvents");
+                    evt.initEvent('click', true, true); // event type,bubbling,cancelable
+                    elements[0].dispatchEvent(evt);
+                    return 1;
+                });
+                if ( matches !== 1 ) {
+                    diag('selector: "' + selector + '" matched ' + matches + ' elements - expected 1');
+                }
+                else {
+                    vdiag('clicked element with selector: "' + selector + '"');
+                }
+                done();
+            });
+        };
     };
 
     exports.Promise = Promise;
